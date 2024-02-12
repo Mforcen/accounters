@@ -1,0 +1,16 @@
+[package]
+name = "webserver"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+chrono = { workspace = true, features = ["serde"] }
+sqlx = { workspace = true, features = ["runtime-tokio", "sqlite", "chrono"]}
+tokio = { version = "1", features = ["full"] }
+axum = { version = "0.6.20", features = ["macros", "headers"] }
+hyper = "0.14.27"
+serde_json = "1"
+accounters = { path = ".." }
