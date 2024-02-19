@@ -195,7 +195,7 @@ impl AccountSnapshot {
     }
 }
 
-#[derive(FromRow, Serialize, Deserialize)]
+#[derive(FromRow, Serialize, Deserialize, Debug)]
 pub struct Account {
     account_id: i32,
     user: i32,

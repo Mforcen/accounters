@@ -10,7 +10,8 @@ serde = { workspace = true, features = ["derive"] }
 chrono = { workspace = true, features = ["serde"] }
 sqlx = { workspace = true, features = ["runtime-tokio", "sqlite", "chrono"]}
 tokio = { version = "1", features = ["full"] }
-axum = { version = "0.6.20", features = ["macros", "headers"] }
+axum = { version = "0.6.20", features = ["macros", "headers", "form"] }
 hyper = "0.14.27"
 serde_json = "1"
 accounters = { path = ".." }
+tera = "1.19.1"

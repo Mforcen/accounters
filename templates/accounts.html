@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Account {{account.account_name}}{% endblock title %}
+{% block body %}
+<div>{{account.account_name}}</div>
+<div>
+  <table>
+    <tr>
+      <th>Descripción</th>
+      <th>Fecha</th>
+      <th>Cantidad</th>
+      <th>Categoría</th>
+    </tr>
+    {% for tx in transactions %}
+    <tr>
+      <td>{{tx.description}}</td>
+      <td>{{tx.transaction_timestamp}}</td>
+      <td>{{tx.amount/100}}</td>
+      <td>{{tx.category}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p>Cargados {{n_txs}} movimientos</p>
+</div>
+{% endblock body %}
+

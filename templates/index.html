@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Index{% endblock title %}
+{% block body %}
+{% for account in accounts %}
+  <a href="/accounts/id/{{account.account_id}}">{{account.account_name}}({{account.account_id}})</a>
+{% endfor %}
+{% endblock body %}

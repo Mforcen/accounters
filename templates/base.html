@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+  <head>
+    <title>{% block title %}{% endblock title %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="/static/styles.css">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: 
+      }
+      
+      .sidebar {
+        max-width: 12rem;
+        flex-grow: 1;
+      }
+      
+      .sidebar a {
+        padding: 0.5rem;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flex h-full">
+      <aside class="sidebar bg-stone-300 p-4 flex flex-col">
+        <a class="hover:bg-stone-400" href="/">Inicio</a>
+        <a class="hover:bg-stone-400" href="/rules">Reglas</a>
+      </aside>
+      <div class="p-4 grow">
+        {% block body %}
+        {% endblock body %}
+      </div>
+    </div>
+  </body>
+</html>
