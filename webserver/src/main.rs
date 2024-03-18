@@ -33,13 +33,26 @@ async fn main() {
             "/",
             Router::new()
                 .route("/", get(routes::ui::index))
-                .route("/accounts/id/:id", get(routes::ui::account))
+                .route("/accounts/id/:id", get(routes::ui::account::list))
+                .route(
+                    "/accounts/id/:id/transactions/add",
+                    get(routes::ui::account::add_transactions_view),
+                )
+                .route(
+                    "/accounts/id/:id/transactions/add",
+                    post(routes::ui::account::add_transactions_action),
+                )
                 .route("/rules", get(routes::ui::rules::list))
                 .route("/rules/new", get(routes::ui::rules::new_view))
                 .route("/rules/new", post(routes::ui::rules::new_action))
+                .route("/categories", get(routes::ui::categories::list))
+                .route("/categories/new", get(routes::ui::categories::new_view))
+                .route("/categories/new", post(routes::ui::categories::new_action))
                 .nest(
                     "/static",
-                    Router::new().route("/styles.css", get(routes::static_routes::styles)),
+                    Router::new()
+                        .route("/styles.css", get(routes::static_routes::styles))
+                        .route("/csv.js", get(routes::static_routes::csv)),
                 ),
         )
         .nest(

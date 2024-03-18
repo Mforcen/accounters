@@ -2,7 +2,15 @@ use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Result, Sqlite, SqlitePool};
 
+use md5::{Digest, Md5};
+
 use crate::models::rules::Rule;
+
+pub enum TxConflictResolutionMode {
+    Nothing,
+    Error,
+    Duplicate,
+}
 
 #[derive(FromRow, Serialize, Deserialize, Debug)]
 pub struct Transaction {
@@ -12,6 +20,8 @@ pub struct Transaction {
     transaction_timestamp: DateTime<Utc>,
     category: Option<i32>,
     amount: i32,
+    #[serde(default, skip_serializing)]
+    hash: Option<String>,
 }
 
 impl Transaction {
@@ -22,21 +32,47 @@ impl Transaction {
         ts: &DateTime<Utc>,
         category: Option<i32>,
         amount: i32,
+        on_conflict: TxConflictResolutionMode,
     ) -> Result<Self> {
-        let res = sqlx::query(concat!(
+        let hash = Transaction::get_tx_hash(account, &desc, &ts, amount);
+        let tx_db = match sqlx::query("SELECT * FROM transactions WHERE hash=? LIMIT 1")
+            .bind(&hash)
+            .fetch_one(pool)
+            .await
+        {
+            Ok(row) => Some(Transaction::from_row(&row)?),
+            Err(sqlx::Error::RowNotFound) => None,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        if let Some(tx) = tx_db {
+            match on_conflict {
+                TxConflictResolutionMode::Nothing => {
+                    return Ok(tx);
+                }
+                TxConflictResolutionMode::Error => {
+                    return Err(sqlx::Error::RowNotFound);
+                }
+                _ => {}
+            }
+        }
+
+        sqlx::query(concat!(
             "INSERT INTO transactions(",
-            "account, description, transaction_timestamp, category, amount",
-            ") VALUES (?,?,?,?,?) RETURNING *"
+            "account, description, transaction_timestamp, category, amount, hash",
+            ") VALUES (?,?,?,?,?,?) RETURNING *"
         ))
         .bind(account)
         .bind(desc)
         .bind(ts)
         .bind(category)
         .bind(amount)
+        .bind(hash)
         .fetch_one(pool)
-        .await?;
-
-        Transaction::from_row(&res)
+        .await
+        .map(|x| Transaction::from_row(&x).unwrap())
     }
 
     pub async fn list(
@@ -165,19 +201,42 @@ impl Transaction {
     }
 
     pub async fn set_description(&mut self, pool: &SqlitePool, desc: &str) -> Result<()> {
-        sqlx::query("UPDATE transactions SET description=? WHERE transaction_id=?")
+        sqlx::query("UPDATE transactions SET description=?, hash=? WHERE transaction_id=?")
             .bind(desc)
+            .bind(Transaction::get_tx_hash(
+                self.account,
+                desc,
+                &self.transaction_timestamp,
+                self.amount,
+            ))
             .bind(self.transaction_id)
             .execute(pool)
             .await?;
         self.description = desc.to_string();
         Ok(())
     }
+
+    pub fn get_tx_hash(account: i32, description: &str, ts: &DateTime<Utc>, amount: i32) -> String {
+        let mut hasher = Md5::new();
+        hasher.update(format!(
+            "{}/{}/{}/{}",
+            account,
+            description,
+            ts.to_rfc3339(),
+            amount
+        ));
+        let mut out = String::new();
+        out.reserve(32);
+        for byte in hasher.finalize().iter() {
+            out.push_str(&format!("{:02x?}", byte));
+        }
+        out
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::Transaction;
+    use super::{Transaction, TxConflictResolutionMode};
     use crate::models::{account::Account, users::User};
     use sqlx::SqlitePool;
 
@@ -206,6 +265,7 @@ mod tests {
             &chrono::Utc::now(),
             None,
             100,
+            TxConflictResolutionMode::Nothing,
         )
         .await
         .unwrap();

@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Account {{account.account_name}}{% endblock title %}
+{% block body %}
+<div class="flex flex-col">
+  <div>
+    <span class="text-lg grow">Add transactions to {{account.account_name}}</span>
+  </div>
+  <div>
+    <form id="file-form">
+      <div><input id="file-input" type="file" name="file"></div>
+      <div><input id="file-submit" type="submit" value="Upload transactions" disabled></div>
+    </form>
+  </div>
+  <div id="file-content">
+  </div>
+</div>
+<script type="module" src="/static/csv.js"></script>
+<script type="module">
+  import csv_parse from "/static/csv.js";
+
+  const form_elem = document.getElementById('file-form')
+  form_elem.onsubmit = (evt) => {
+    evt.preventDefault();
+    console.log('Unable to send');
+  }
+
+  const mappers = [
+    ['None', null],
+    ['Date dd/mm/yyyy', el => {
+      let split = el.split('/');
+      return new Date(
+        parseInt(split[2], 10),
+        parseInt(split[1], 10),
+        parseInt(split[0], 10),
+      );
+    }],
+    ['Date yyyy/mm/dd', el => {
+      let split = el.split('/');
+      return new Date(
+        parseInt(split[0], 10),
+        parseInt(split[1], 10),
+        parseInt(split[2], 10),
+      );
+    }],
+    ['Description', el => el],
+    ['Amount', el => parseFloat(el)]
+  ];
+
+  function appendOptions(el) {
+    el.replaceChildren(...mappers.map((e, idx)=>{
+      let option = document.createElement('option');
+      option.setAttribute('value', idx);
+      option.textContent = e[0];
+      return option;
+    }));
+  }
+
+  document.getElementById('file-input').onchange = (evt) => {
+    let files = evt.target.files;
+    if(files.length > 0) {
+      let file = files[0];
+      if(file.type != 'text/csv') {
+        window.alert("File not valid");
+        return;
+      }
+      file.text().then(content => {
+        let line_end = content.indexOf('\n');
+        if(line_end == -1) {
+          window.alert("File is not a valid CSV");
+          return;
+        }
+
+        let table_content = csv_parse(content);
+        let table_header = table_content.splice(0,1)[0];
+
+        let table = document.createElement('table');
+        let thead = document.createElement('thead');
+        let trhead = document.createElement('tr');
+        trhead.replaceChildren(...table_header.map(e =>{
+          let elem = document.createElement('th');
+          let text = document.createElement('div');
+          text.textContent = e;
+          elem.appendChild(text);
+
+          let container = document.createElement('div');
+          let sel_el = document.createElement('select');
+          sel_el.id = 'column_' + e;
+          appendOptions(sel_el);
+          container.appendChild(sel_el);
+          elem.appendChild(container);
+
+          return elem;
+        }));
+        thead.appendChild(trhead);
+        table.appendChild(thead);
+
+        form_elem.onsubmit = (evt) => {
+          evt.preventDefault();
+          console.log(table_header);
+          console.log(table_content);
+
+          let mapper = {
+            date: null,
+            amount: null,
+            description: null
+          };
+          
+          table_header.forEach((e, idx)=>{
+            let option = document.getElementById('column_'+e).selectedIndex;
+            switch(option){
+              case 1:
+              case 2:
+                mapper.date = row => mappers[option][1](row[idx]);
+                break;
+              case 3:
+                mapper.description = row => mappers[option][1](row[idx]);
+                break;
+              case 4:
+                mapper.amount = row => mappers[option][1](row[idx]);
+                break;
+            }
+          });
+          if(mapper.date == null) {
+            alert('Missing date mapping');
+            return;
+          } else if(mapper.amount == null) {
+            alert('Missing amount mapping');
+            return;
+          } else if(mapper.description == null) {
+            alert('Missing description mapping');
+            return;
+          }
+          let out = table_content.map(e=>{
+            return {
+              date: mapper.date(e),
+              amount: mapper.amount(e),
+              description: mapper.description(e)
+            };
+          });
+          fetch('add', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(out)
+          }).then(e=>window.location.href='..');
+        };
+
+        document.getElementById('file-submit').removeAttribute('disabled');
+
+        let tbody = document.createElement('tbody');
+        tbody.replaceChildren(...table_content.map(row => {
+          let row_elem = document.createElement('tr');
+          row_elem.replaceChildren(...row.map(cell => {
+            let td = document.createElement('td');
+            td.textContent = cell;
+            return td;
+          }));
+          return row_elem;
+        }))
+
+        table.appendChild(tbody);
+
+        let content_div = document.getElementById('file-content');
+        content_div.replaceChildren(table);
+      });
+    }
+  }
+</script>
+<style>
+  th, td {
+    padding: 0.25rem 1rem;
+  }
+</style>
+{% endblock body %}
+

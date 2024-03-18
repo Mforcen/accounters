@@ -10,3 +10,11 @@ pub async fn styles() -> impl IntoResponse {
         fs::read_to_string("static/styles.css").unwrap(),
     )
 }
+
+pub async fn csv() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        [(CONTENT_TYPE, "application/javascript")],
+        fs::read_to_string("static/csv.js").unwrap(),
+    )
+}

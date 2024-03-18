@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Categories{% endblock title %}
+{% block body %}
+  <div>
+    <a href="/categories/new">New</a>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th span="col">Id</th>
+        <th span="col">Name</th>
+        <th span="col">Description</th>
+      <tr>
+    </thead>
+    <tbody>
+      {% for category in categories %}
+      <tr>
+        <td>{{category.category_id}}</td>
+        <td>{{category.name}}</td>
+        <td>{{category.description}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock body %}

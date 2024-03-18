@@ -44,8 +44,10 @@ CREATE TABLE IF NOT EXISTS transactions (
     transaction_timestamp DATETIME,
     category INTEGER,
     amount INTEGER,
+    hash TEXT,
     FOREIGN KEY (account) REFERENCES accounts(account_id),
     FOREIGN KEY (category) REFERENCES categories(category_id)
 );
 
 CREATE INDEX idx_transactions_ts ON transactions(account, transaction_timestamp);
+CREATE INDEX idx_transactions_hash ON transactions(hash);

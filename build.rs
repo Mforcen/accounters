@@ -10,5 +10,5 @@ fn main() {
         ))
         .status()
         .unwrap();
-    println!("cargo:rerun-if-changed=templates/*")
+    println!("cargo:rerun-if-changed=templates/")
 }

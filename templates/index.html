@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Index{% endblock title %}
 {% block body %}
-{% for account in accounts %}
-  <a href="/accounts/id/{{account.account_id}}">{{account.account_name}}({{account.account_id}})</a>
-{% endfor %}
+<div><h2 class="text-lg">Accounts</h2></div>
+<div>
+  {% for account in accounts %}
+    <a class="p-2 hover:bg-stone-200" href="/accounts/id/{{account.account_id}}">{{account.account_name}}</a>
+  {% endfor %}
+</div>
 {% endblock body %}
