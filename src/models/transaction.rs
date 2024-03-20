@@ -101,6 +101,32 @@ impl Transaction {
         Ok(res)
     }
 
+    pub async fn list_by_user(
+        pool: &SqlitePool,
+        user: i32,
+        limit: i32,
+        offset: i32,
+        asc: bool,
+    ) -> Result<Vec<Self>> {
+        let rows = sqlx::query(
+			if asc {
+				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY transaction_timestamp ASC LIMIT ? OFFSET ?"
+			} else {
+				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY transaction_timestamp DESC LIMIT ? OFFSET ?"
+			}
+		).bind(user)
+         .bind(limit)
+         .bind(offset)
+         .fetch_all(pool)
+         .await?;
+
+        let mut res = Vec::new();
+        for r in &rows {
+            res.push(Transaction::from_row(r)?);
+        }
+        Ok(res)
+    }
+
     pub fn query_by_date<'a>(
         account: i32,
         after: Option<DateTime<Utc>>,

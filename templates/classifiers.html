@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Categories{% endblock title %}
+{% block title %}Rules{% endblock title %}
 {% block body %}
   <div>
-    <a href="/categories/new">New</a>
+    <a href="/classifiers/new_category">New</a>
   </div>
   <table>
     <thead>
@@ -22,4 +22,24 @@
       {% endfor %}
     </tbody>
   </table>
+
+    <div>
+      <a href="/classifiers/new_rule">New</a>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Categoría</th>
+          <th>Regla</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for rule in rules %}
+        <tr>
+          <td>{{rule.category}}</td>
+          <td>{{rule.regex}}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
 {% endblock body %}

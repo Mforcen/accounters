@@ -42,12 +42,26 @@ async fn main() {
                     "/accounts/id/:id/transactions/add",
                     post(routes::ui::account::add_transactions_action),
                 )
-                .route("/rules", get(routes::ui::rules::list))
-                .route("/rules/new", get(routes::ui::rules::new_view))
-                .route("/rules/new", post(routes::ui::rules::new_action))
-                .route("/categories", get(routes::ui::categories::list))
-                .route("/categories/new", get(routes::ui::categories::new_view))
-                .route("/categories/new", post(routes::ui::categories::new_action))
+                .route(
+                    "/classifiers",
+                    get(routes::ui::classifier::view_classifiers),
+                )
+                .route(
+                    "/classifiers/new_rule",
+                    get(routes::ui::classifier::rules_new_view),
+                )
+                .route(
+                    "/classifiers/new_rule",
+                    post(routes::ui::classifier::rules_new_action),
+                )
+                .route(
+                    "/classifiers/new_category",
+                    get(routes::ui::classifier::category_new_view),
+                )
+                .route(
+                    "/classifiers/new_category",
+                    post(routes::ui::classifier::category_new_action),
+                )
                 .nest(
                     "/static",
                     Router::new()
