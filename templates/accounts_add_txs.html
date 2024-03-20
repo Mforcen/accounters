@@ -28,19 +28,19 @@
     ['None', null],
     ['Date dd/mm/yyyy', el => {
       let split = el.split('/');
-      return new Date(
+      return new Date(Date.UTC(
         parseInt(split[2], 10),
-        parseInt(split[1], 10),
+        parseInt(split[1], 10)-1,
         parseInt(split[0], 10),
-      );
+      ));
     }],
     ['Date yyyy/mm/dd', el => {
       let split = el.split('/');
-      return new Date(
+      return new Date(Date.UTC(
         parseInt(split[0], 10),
-        parseInt(split[1], 10),
+        parseInt(split[1], 10)-1,
         parseInt(split[2], 10),
-      );
+      ));
     }],
     ['Description', el => el],
     ['Amount', el => parseFloat(el)]

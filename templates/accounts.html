@@ -9,22 +9,57 @@
 </div>
 <div>
   <table>
-    <tr>
-      <th>Description</th>
-      <th>Date</th>
-      <th>Amount</th>
-      <th>Category</th>
-    </tr>
-    {% for tx in transactions %}
-    <tr>
-      <td>{{tx.description}}</td>
-      <td>{{tx.transaction_timestamp}}</td>
-      <td>{{tx.amount/100}}</td>
-      <td>{{tx.category}}</td>
-    </tr>
-    {% endfor %}
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Date</th>
+        <th>Amount</th>
+        <th>Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tx in transactions %}
+      <tr>
+        <td>{{tx.description}}</td>
+        <td>{{tx.transaction_timestamp}}</td>
+        <td>{{tx.amount/100}}</td>
+        <td>{{tx.category}}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
-  <p>Loaded {{n_txs}} transactions</p>
+  <div class="flex">
+    <div class="flex grow flex-row justify-evenly">
+      <div>
+        <a href="/accounts/id/{{account.account_id}}?entries={{n_entries}}&page={{prev_page}}">&lt;</a>
+      </div>
+      <div>{{curr_page}}</div>
+      <div>
+        <a href="/accounts/id/{{account.account_id}}?entries={{n_entries}}&page={{next_page}}">&gt;</a>
+      </div>
+    </div>
+    <div>
+      <select onchange="onSelect(event)">
+        <option {% if n_entries == 10 %}selected="selected"{% endif %}>10</option>
+        <option {% if n_entries == 20 %}selected="selected"{% endif %}>20</option>
+        <option {% if n_entries == 50 %}selected="selected"{% endif %}>50</option>
+        <option {% if n_entries == 100 %}selected="selected"{% endif %}>100</option>
+        <option {% if n_entries == 200 %}selected="selected"{% endif %}>200</option>
+      </select>
+    </div>
+  </div>
 </div>
+<style>
+  table {
+    border-spacing: 0.2rem;
+  }
+</style>
+<script>
+  function onSelect(e) {
+    let params = new URLSearchParams();
+    params.set("entries", e.target.value);
+    window.location.search = params.toString();
+  }
+</script>
 {% endblock body %}
 

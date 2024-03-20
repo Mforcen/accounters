@@ -16,7 +16,8 @@ use accounters::models::{transaction::TxConflictResolutionMode, Account, Transac
 
 #[derive(Deserialize)]
 pub struct AccountViewParams {
-    movements: Option<i32>,
+    entries: Option<i32>,
+    page: Option<i32>,
 }
 
 pub async fn list(
@@ -24,7 +25,7 @@ pub async fn list(
     State(tmpls): State<Arc<Tera>>,
     uid: UserToken,
     Path(account_id): Path<i32>,
-    Query(AccountViewParams { movements }): Query<AccountViewParams>,
+    Query(AccountViewParams { entries, page }): Query<AccountViewParams>,
 ) -> impl IntoResponse {
     let mut ctx = Context::new();
 
@@ -47,11 +48,14 @@ pub async fn list(
         );
     }
 
+    let n_entries = entries.unwrap_or(10).max(10);
+    let page = page.unwrap_or(0).max(0);
+
     let txs = match Transaction::list(
         db.as_ref(),
         account.get_id(),
-        movements.unwrap_or(10),
-        0,
+        n_entries,
+        n_entries * page,
         false,
     )
     .await
@@ -68,7 +72,10 @@ pub async fn list(
 
     ctx.insert("account", &account);
     ctx.insert("transactions", &txs);
-    ctx.insert("n_txs", &txs.len());
+    ctx.insert("prev_page", &((page - 1).max(0)));
+    ctx.insert("curr_page", &page);
+    ctx.insert("next_page", &(page + 1));
+    ctx.insert("n_entries", &(n_entries));
 
     (
         StatusCode::OK,
