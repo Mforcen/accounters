@@ -6,7 +6,7 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 
 use crate::users::UserToken;
-use accounters::models::Account;
+use accounters::models::account::Account;
 
 pub async fn account_get(
     State(db): State<Arc<SqlitePool>>,
@@ -47,22 +47,6 @@ pub async fn account_list(
 ) -> (StatusCode, String) {
     match Account::list(db.as_ref(), uid.user_id).await {
         Ok(a) => (StatusCode::OK, serde_json::to_string(&a).unwrap()),
-        Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("{e}")),
-    }
-}
-
-pub async fn snapshot_update(
-    State(db): State<Arc<SqlitePool>>,
-    uid: UserToken,
-    Path(account): Path<i32>,
-) -> (StatusCode, String) {
-    let account = Account::get_by_id(db.as_ref(), account).await.unwrap();
-    if account.get_user() != uid.user_id {
-        return (StatusCode::UNAUTHORIZED, String::new());
-    }
-
-    match account.recalculate_snapshots(db.as_ref(), None).await {
-        Ok(_) => (StatusCode::OK, String::new()),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("{e}")),
     }
 }

@@ -6,7 +6,7 @@ use sqlx::SqlitePool;
 use tera::{Context, Tera};
 
 use crate::users::UserToken;
-use accounters::models::{Account, Transaction};
+use accounters::models::{account::Account, transaction::Transaction};
 
 pub mod account;
 pub mod categories;

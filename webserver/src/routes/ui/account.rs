@@ -12,7 +12,10 @@ use sqlx::SqlitePool;
 use tera::{Context, Tera};
 
 use crate::users::UserToken;
-use accounters::models::{transaction::TxConflictResolutionMode, Account, Transaction};
+use accounters::models::{
+    account::Account,
+    transaction::{Transaction, TxConflictResolutionMode},
+};
 
 #[derive(Deserialize)]
 pub struct AccountViewParams {

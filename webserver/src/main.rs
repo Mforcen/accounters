@@ -86,10 +86,6 @@ async fn main() {
                     get(routes::api::transactions::list),
                 )
                 .route(
-                    "/accounts/id/:id/update",
-                    post(routes::api::accounts::snapshot_update),
-                )
-                .route(
                     "/accounts/id/:id/recategorize",
                     post(routes::api::accounts::recategorize),
                 )

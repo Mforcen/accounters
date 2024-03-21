@@ -6,7 +6,7 @@ use hyper::StatusCode;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-use accounters::models::{transaction::TxConflictResolutionMode, Transaction};
+use accounters::models::transaction::{Transaction, TxConflictResolutionMode};
 
 #[derive(Deserialize)]
 pub struct TransactionContent {

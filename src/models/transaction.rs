@@ -20,6 +20,7 @@ pub struct Transaction {
     transaction_timestamp: DateTime<Utc>,
     category: Option<i32>,
     amount: i32,
+    accumulated: i32,
     #[serde(default, skip_serializing)]
     hash: Option<String>,
 }
