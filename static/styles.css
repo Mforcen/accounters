@@ -1,5 +1,5 @@
 /*
-! tailwindcss v3.4.1 | MIT License | https://tailwindcss.com
+! tailwindcss v3.4.3 | MIT License | https://tailwindcss.com
 */
 
 /*
@@ -211,6 +211,8 @@ textarea {
   /* 1 */
   line-height: inherit;
   /* 1 */
+  letter-spacing: inherit;
+  /* 1 */
   color: inherit;
   /* 1 */
   margin: 0;
@@ -234,9 +236,9 @@ select {
 */
 
 button,
-[type='button'],
-[type='reset'],
-[type='submit'] {
+input:where([type='button']),
+input:where([type='reset']),
+input:where([type='submit']) {
   -webkit-appearance: button;
   /* 1 */
   background-color: transparent;
@@ -492,6 +494,10 @@ video {
   --tw-backdrop-opacity:  ;
   --tw-backdrop-saturate:  ;
   --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
 }
 
 ::backdrop {
@@ -542,6 +548,10 @@ video {
   --tw-backdrop-opacity:  ;
   --tw-backdrop-saturate:  ;
   --tw-backdrop-sepia:  ;
+  --tw-contain-size:  ;
+  --tw-contain-layout:  ;
+  --tw-contain-paint:  ;
+  --tw-contain-style:  ;
 }
 
 .container {
@@ -576,6 +586,18 @@ video {
   .container {
     max-width: 1536px;
   }
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mb-8 {
+  margin-bottom: 2rem;
 }
 
 .block {
@@ -634,6 +656,37 @@ video {
 .text-lg {
   font-size: 1.125rem;
   line-height: 1.75rem;
+}
+
+.ars-input {
+  margin: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.ars-input input {
+  width: 100%;
+  padding: 0.25rem 0.75rem;
+  border: solid 1px #57534e;
+  border-radius: 0.5rem;
+}
+
+.ars-input select {
+  width: 100%;
+  padding: 0.25rem 0.75rem;
+  border: solid 1px #57534e;
+  border-radius: 0.5rem;
+  background-color: transparent;
+}
+
+.ars-button {
+  padding: 0.25rem 0.75rem;
+  border: solid 1px #57534e;
+  border-radius: 0.5rem;
+}
+
+.ars-button:hover {
+  background: #57534e77;
+  cursor: pointer;
 }
 
 .hover\:bg-stone-200:hover {

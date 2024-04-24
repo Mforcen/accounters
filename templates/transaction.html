@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Transaction {{tx_id}}{% endblock title %}
+{% block body %}
+<div class="mb-4">
+  <form method="post">
+    <div class="mb-2">
+      <label class="ars-input">
+        Name
+        <input type="text" name="description" value="{{tx.description}}" />
+      </label>
+    </div>
+    <div class="mb-2">
+      <label class="ars-input">
+        Date
+        <input type="text" name="date" value="{{tx.tx_date}}" />
+      </label>
+    </div>
+    <div class="mb-2">
+      <label class="ars-input">
+        Amount
+        <input type="text" name="amount" value="{{ tx.amount/100 }}" />
+      </label>
+    </div>
+    <div class="mb-2">
+      <label class="ars-input">
+        Category
+        <select style="width: 100%;" name="category">
+          <option></option>
+          {% for c in categories %}
+          <option {% if tx.category and c.category_id==tx.category %}selected{% endif %} value="{{ c.category_id }}">
+            {{ c.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <div style="text-align: right;">
+      <input class="ars-button" type="submit" value="Update" />
+  </form>
+</div>
+{% endblock body %}

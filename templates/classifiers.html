@@ -1,35 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Rules{% endblock title %}
 {% block body %}
-  <div>
-    <a href="/classifiers/new_category">New</a>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th span="col">Id</th>
-        <th span="col">Name</th>
-        <th span="col">Description</th>
-      <tr>
-    </thead>
-    <tbody>
-      {% for category in categories %}
-      <tr>
-        <td>{{category.category_id}}</td>
-        <td>{{category.name}}</td>
-        <td>{{category.description}}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div class="mb-8">
+    <div>
+      <a href="/classifiers/new_category">New</a>
+    </div>
+    <table width="100%">
+      <thead>
+        <tr>
+          <th width="10%" span="col">Id</th>
+          <th width="30%" span="col">Name</th>
+          <th span="col">Description</th>
+        <tr>
+      </thead>
+      <tbody>
+        {% for category in categories %}
+        <tr>
+          <td>{{category.category_id}}</td>
+          <td>{{category.name}}</td>
+          <td>{{category.description}}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div
 
+  <div>
     <div>
       <a href="/classifiers/new_rule">New</a>
     </div>
-    <table>
+    <table width="100%">
       <thead>
         <tr>
-          <th>Categoría</th>
+          <th width="30%">Categoría</th>
           <th>Regla</th>
         </tr>
       </thead>
@@ -42,4 +45,5 @@
       {% endfor %}
       </tbody>
     </table>
+  </div>
 {% endblock body %}

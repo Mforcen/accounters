@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::{Path, Query, State},
@@ -12,10 +12,7 @@ use sqlx::SqlitePool;
 use tera::{Context, Tera};
 
 use crate::users::UserToken;
-use accounters::models::{
-    account::Account,
-    transaction::{Transaction, TxConflictResolutionMode},
-};
+use accounters::models::{account::Account, categories::Category, transaction::Transaction};
 
 #[derive(Deserialize)]
 pub struct AccountViewParams {
@@ -50,6 +47,14 @@ pub async fn list(
             String::from("You cannot access this resource"),
         );
     }
+
+    let categories: HashMap<i32, String> = Category::list(db.as_ref())
+        .await
+        .unwrap()
+        .iter()
+        .map(|x| (x.category_id, x.name.clone()))
+        .collect();
+    ctx.insert("categories", &categories);
 
     let n_entries = entries.unwrap_or(10).max(10);
     let page = page.unwrap_or(0).max(0);
@@ -146,7 +151,6 @@ pub async fn add_transactions_action(
             &tx.date,
             None,
             (tx.amount * 100.0).round() as i32,
-            TxConflictResolutionMode::Nothing,
         )
         .await
         {

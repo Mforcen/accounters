@@ -8,22 +8,26 @@
   </div>
 </div>
 <div>
-  <table>
+  <table width="100%">
     <thead>
       <tr>
-        <th>Description</th>
-        <th>Date</th>
-        <th>Amount</th>
-        <th>Category</th>
+        <th width="40%">Description</th>
+        <th width="20%">Date</th>
+        <th width="10%">Amount</th>
+        <th width="10%">Acc</th>
+        <th width="15%">Category</th>
+        <th width="5%">Link</th>
       </tr>
     </thead>
     <tbody>
       {% for tx in transactions %}
       <tr>
         <td>{{tx.description}}</td>
-        <td>{{tx.transaction_timestamp}}</td>
+        <td>{{tx.tx_date}}</td>
         <td>{{tx.amount/100}}</td>
-        <td>{{tx.category}}</td>
+        <td>{{tx.accumulated/100}}</td>
+        <td>{% if tx.category %}{{categories[tx.category]}}{% endif %}</td>
+        <td><a href="/transaction/{{ tx.transaction_id }}">Go to</a></td>
       </tr>
       {% endfor %}
     </tbody>

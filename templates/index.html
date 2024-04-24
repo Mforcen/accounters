@@ -1,33 +1,91 @@
 {% extends "base.html" %}
 {% block title %}Index{% endblock title %}
 {% block body %}
-<div><h2 class="text-lg">Accounts</h2></div>
-<div>
-  {% for account in accounts %}
-    <a class="p-2 hover:bg-stone-200" href="/accounts/id/{{account.account_id}}">{{account.account_name}}</a>
-  {% endfor %}
-</div>
-<div><h2 class="text-lg">Last transactions</h2></div>
-<div>
-  <table>
+<div class="mb-4">
+  <h2 class="text-lg">Accounts</h2>
+  <table width="100%">
     <thead>
       <tr>
+        <th width="10%">ID</th>
         <th>Description</th>
-        <th>Date</th>
-        <th>Amount</th>
-        <th>Category</th>
+        <th width="30%">Accumulated</th>
+        <th width="20%">Go to</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for account in accounts %}
+      <tr>
+        <td style="text-align: center;">{{ account.id }}</td>
+        <td style="text-align: center;">{{ account.description }}</td>
+        <td style="text-align: center;">{{ account.accumulated | round(precision=2) }}</td>
+        <td style="text-align: center;">
+          <a class="p-2 hover:bg-stone-200" href="/accounts/id/{{ account.id }}">{{ account.description }}</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<div class="mb-4">
+  <h2 class="text-lg">Last month summary</h2>
+  <div style="width: 200px; height: 200px;">
+    <canvas id="chart" style="width: 200px; height: 200px;"></canvas>
+  </div>
+</div>
+<div>
+  <h2 class="text-lg">Last transactions</h2>
+  <table width="100%">
+    <thead>
+      <tr>
+        <th width="40%">Description</th>
+        <th width="20%">Date</th>
+        <th width="20%">Amount</th>
+        <th width="20%">Category</th>
       </tr>
     </thead>
     <tbody>
       {% for tx in transactions %}
-      <tr>
+      <tr onclick="document.href='transactions/{{tx.transaction_id}}'">
         <td>{{tx.description}}</td>
-        <td>{{tx.transaction_timestamp}}</td>
+        <td>{{tx.tx_date}}</td>
         <td>{{tx.amount/100}}</td>
-        <td>{{tx.category}}</td>
+          <td>{% if tx.category %}{{categories[tx.category]}}{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const ctx = document.getElementById('chart');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: [
+          {% for i in income -%}
+            'Income: {{ categories[i.0] }}',
+          {% endfor -%}
+          {% for e in expenses -%}
+            'Expenses: {{ categories[e.0] }}',
+          {% endfor -%}
+        ],
+        datasets: [{
+          label: 'Amount',
+          data: [
+          {% for i in income -%}
+            {{ i.1/100 }},
+          {% endfor -%}
+          {% for e in expenses -%}
+            {{ e.1/100 }},
+          {% endfor -%}
+          ],
+          backgroundColor: [
+            {% for c in colors -%}
+            '#{{c}}',
+            {% endfor -%}
+          ]
+        }]
+      }
+    })
+  </script>
 </div>
 {% endblock body %}

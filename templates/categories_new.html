@@ -1,28 +1,21 @@
 {% extends "base.html" %}
 {% block title %}Create category{% endblock title %}
 {% block body %}
-  <form action="/categories/new" method="post" class="flex flex-col">
-    <label class="grow">
-      Name
-      <input type="text" name="name" />
-    </label>
-    <label class="grow">
-      Description
-      <input type="text" name="description" />
-    </label>
-    <button type="submit">Submit</button>
+  <form action="/classifiers/new_category" method="post">
+    <div class="mb-2">
+      <label class="ars-input">
+        Name
+        <input type="text" name="name" />
+      </label>
+    </div>
+    <div class="mb-2">
+      <label class="ars-input">
+        Description
+        <input type="text" name="description" />
+      </label>
+    </div>
+    <div class="mb-2" style="text-align: right;">
+      <button class="ars-button" type="submit">Submit</button>
+    </div>
   </form>
-  <style>
-    label {
-      width: 100%;
-    }
-
-    input {
-      width: 100%;
-      border: 1px solid black;
-      border-radius: 3px;
-      padding: 0.25rem;
-      margin: 0.25rem;
-    }
-  </style>
 {% endblock body %}

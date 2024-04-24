@@ -42,6 +42,8 @@ async fn main() {
                     "/accounts/id/:id/transactions/add",
                     post(routes::ui::account::add_transactions_action),
                 )
+                .route("/transaction/:id", get(routes::ui::transaction::view))
+                .route("/transaction/:id", post(routes::ui::transaction::update))
                 .route(
                     "/classifiers",
                     get(routes::ui::classifier::view_classifiers),
