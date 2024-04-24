@@ -2,27 +2,17 @@ use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Result, Sqlite, SqlitePool};
 
-use md5::{Digest, Md5};
-
 use crate::models::rules::Rule;
-
-pub enum TxConflictResolutionMode {
-    Nothing,
-    Error,
-    Duplicate,
-}
 
 #[derive(FromRow, Serialize, Deserialize, Debug)]
 pub struct Transaction {
     transaction_id: i32,
     account: i32,
     description: String,
-    transaction_timestamp: DateTime<Utc>,
+    tx_date: DateTime<Utc>,
     category: Option<i32>,
     amount: i32,
     accumulated: i32,
-    #[serde(default, skip_serializing)]
-    hash: Option<String>,
 }
 
 impl Transaction {
@@ -33,47 +23,28 @@ impl Transaction {
         ts: &DateTime<Utc>,
         category: Option<i32>,
         amount: i32,
-        on_conflict: TxConflictResolutionMode,
     ) -> Result<Self> {
-        let hash = Transaction::get_tx_hash(account, &desc, &ts, amount);
-        let tx_db = match sqlx::query("SELECT * FROM transactions WHERE hash=? LIMIT 1")
-            .bind(&hash)
-            .fetch_one(pool)
-            .await
-        {
-            Ok(row) => Some(Transaction::from_row(&row)?),
-            Err(sqlx::Error::RowNotFound) => None,
-            Err(e) => {
-                return Err(e);
-            }
-        };
-
-        if let Some(tx) = tx_db {
-            match on_conflict {
-                TxConflictResolutionMode::Nothing => {
-                    return Ok(tx);
-                }
-                TxConflictResolutionMode::Error => {
-                    return Err(sqlx::Error::RowNotFound);
-                }
-                _ => {}
-            }
-        }
-
         sqlx::query(concat!(
             "INSERT INTO transactions(",
-            "account, description, transaction_timestamp, category, amount, hash",
-            ") VALUES (?,?,?,?,?,?) RETURNING *"
+            "account, description, tx_date, category, amount",
+            ") VALUES (?,?,?,?,?) RETURNING *"
         ))
         .bind(account)
         .bind(desc)
         .bind(ts)
         .bind(category)
         .bind(amount)
-        .bind(hash)
         .fetch_one(pool)
         .await
-        .map(|x| Transaction::from_row(&x).unwrap())
+        .and_then(|x| Transaction::from_row(&x))
+    }
+
+    pub async fn get_by_id(pool: &SqlitePool, tx_id: i32) -> Result<Self> {
+        sqlx::query("SELECT * FROM transactions WHERE transaction_id=?")
+            .bind(tx_id)
+            .fetch_one(pool)
+            .await
+            .and_then(|x| Transaction::from_row(&x))
     }
 
     pub async fn list(
@@ -83,17 +54,16 @@ impl Transaction {
         offset: i32,
         asc: bool,
     ) -> Result<Vec<Self>> {
-        let rows = sqlx::query(
-			if asc {
-				"SELECT * FROM transactions WHERE account=? ORDER BY transaction_timestamp ASC LIMIT ? OFFSET ?"
-			} else {
-				"SELECT * FROM transactions WHERE account=? ORDER BY transaction_timestamp DESC LIMIT ? OFFSET ?"
-			}
-		).bind(account)
-         .bind(limit)
-         .bind(offset)
-         .fetch_all(pool)
-         .await?;
+        let rows = sqlx::query(if asc {
+            "SELECT * FROM transactions WHERE account=? ORDER BY tx_date ASC LIMIT ? OFFSET ?"
+        } else {
+            "SELECT * FROM transactions WHERE account=? ORDER BY tx_date DESC LIMIT ? OFFSET ?"
+        })
+        .bind(account)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
 
         let mut res = Vec::new();
         for r in &rows {
@@ -111,9 +81,9 @@ impl Transaction {
     ) -> Result<Vec<Self>> {
         let rows = sqlx::query(
 			if asc {
-				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY transaction_timestamp ASC LIMIT ? OFFSET ?"
+				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY tx_date ASC LIMIT ? OFFSET ?"
 			} else {
-				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY transaction_timestamp DESC LIMIT ? OFFSET ?"
+				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY tx_date DESC LIMIT ? OFFSET ?"
 			}
 		).bind(user)
          .bind(limit)
@@ -139,19 +109,19 @@ impl Transaction {
         query.push_bind(account);
 
         if let Some(after) = after {
-            query.push(" AND transaction_timestamp >= ");
+            query.push(" AND tx_date >= ");
             query.push_bind(after);
         }
 
         if let Some(before) = before {
-            query.push(" AND transaction_timestamp < ");
+            query.push(" AND tx_date < ");
             query.push_bind(before);
         }
 
         if asc {
-            query.push(" ORDER BY transaction_timestamp ASC");
+            query.push(" ORDER BY tx_date ASC");
         } else {
-            query.push(" ORDER BY transaction_timestamp DESC");
+            query.push(" ORDER BY tx_date DESC");
         }
 
         if let Some(lim) = limit {
@@ -194,20 +164,24 @@ impl Transaction {
     }
 
     pub fn get_timestamp(&self) -> &DateTime<Utc> {
-        &self.transaction_timestamp
+        &self.tx_date
     }
 
     pub fn get_category(&self) -> Option<i32> {
         self.category
     }
 
-    pub async fn set_category(&mut self, pool: &SqlitePool, new_category: i32) -> Result<()> {
+    pub async fn set_category(
+        &mut self,
+        pool: &SqlitePool,
+        new_category: Option<i32>,
+    ) -> Result<()> {
         sqlx::query("UPDATE transactions SET category=? WHERE transaction_id=?")
             .bind(new_category)
             .bind(self.transaction_id)
             .execute(pool)
             .await?;
-        self.category = Some(new_category);
+        self.category = new_category;
         Ok(())
     }
 
@@ -216,7 +190,7 @@ impl Transaction {
             if r.matches(&self.description)
                 .map_err(|_| sqlx::Error::Protocol("RegexError".to_string()))?
             {
-                self.set_category(pool, r.category).await?;
+                self.set_category(pool, Some(r.category)).await?;
                 return Ok(true);
             }
         }
@@ -227,15 +201,13 @@ impl Transaction {
         self.amount
     }
 
+    pub fn get_accumulated(&self) -> i32 {
+        self.accumulated
+    }
+
     pub async fn set_description(&mut self, pool: &SqlitePool, desc: &str) -> Result<()> {
-        sqlx::query("UPDATE transactions SET description=?, hash=? WHERE transaction_id=?")
+        sqlx::query("UPDATE transactions SET description=? WHERE transaction_id=?")
             .bind(desc)
-            .bind(Transaction::get_tx_hash(
-                self.account,
-                desc,
-                &self.transaction_timestamp,
-                self.amount,
-            ))
             .bind(self.transaction_id)
             .execute(pool)
             .await?;
@@ -243,27 +215,22 @@ impl Transaction {
         Ok(())
     }
 
-    pub fn get_tx_hash(account: i32, description: &str, ts: &DateTime<Utc>, amount: i32) -> String {
-        let mut hasher = Md5::new();
-        hasher.update(format!(
-            "{}/{}/{}/{}",
-            account,
-            description,
-            ts.to_rfc3339(),
-            amount
-        ));
-        let mut out = String::new();
-        out.reserve(32);
-        for byte in hasher.finalize().iter() {
-            out.push_str(&format!("{:02x?}", byte));
-        }
-        out
+    pub async fn set_amount(&mut self, pool: &SqlitePool, amount: i32) -> Result<()> {
+        sqlx::query("UPDATE transactions SET amount=? WHERE transaction_id=?")
+            .bind(amount)
+            .bind(self.transaction_id)
+            .execute(pool)
+            .await?;
+        self.accumulated -= self.amount;
+        self.amount = amount;
+        self.accumulated += self.amount;
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Transaction, TxConflictResolutionMode};
+    use super::Transaction;
     use crate::models::{account::Account, users::User};
     use sqlx::SqlitePool;
 
@@ -292,7 +259,6 @@ mod tests {
             &chrono::Utc::now(),
             None,
             100,
-            TxConflictResolutionMode::Nothing,
         )
         .await
         .unwrap();

@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     amount INTEGER,
     accumulated INTEGER DEFAULT 0,
     tx_order INTEGER DEFAULT 0,
-    hash TEXT,
     FOREIGN KEY (account) REFERENCES accounts(account_id),
     FOREIGN KEY (category) REFERENCES categories(category_id)
 );
@@ -48,34 +47,39 @@ BEGIN
     UPDATE transactions 
     SET accumulated=old.acc+NEW.amount 
     FROM (
-        SELECT COALESCE(max(accumulated), 0) AS acc
+        SELECT COALESCE(accumulated, 0) AS acc
         FROM transactions
-        WHERE date <= NEW.date
-        ORDER BY tx_order DESC
+        WHERE tx_date <= NEW.tx_date
+            AND transaction_id <> NEW.transaction_id
+            AND account=NEW.account
+        ORDER BY tx_date DESC, tx_order DESC
         LIMIT 1
     ) AS old 
-    WHERE id=NEW.id;
+    WHERE transaction_id=NEW.transaction_id;
 
     UPDATE transactions
     SET tx_order=old.tx_order+1 FROM (
         SELECT COALESCE(max(tx_order), 0) as tx_order
-        FROM tx WHERE date=NEW.date
+        FROM transactions WHERE tx_date=NEW.tx_date
     ) AS old
-    WHERE id=NEW.id;
+    WHERE transaction_id=NEW.transaction_id;
 
-    UPDATE transactions SET accumulated=calc.acc+NEW.accumulated FROM (
-        SELECT tx.id, (
+    UPDATE transactions SET accumulated=calc.acc+cte_tx.accumulated FROM (
+        SELECT tx.transaction_id, (
             SUM(amount) OVER (
-                ORDER BY date, tx_order
+                ORDER BY tx_date, tx_order
                 ROWS BETWEEN
                 UNBOUNDED PRECEDING
                 AND CURRENT ROW
             )
         ) acc
         FROM transactions tx
-        WHERE date > NEW.date OR id=NEW.id;
-    )
-    WHERE transactions.id=calc.id;
+        WHERE tx_date > NEW.tx_date AND account=NEW.account
+    ) AS calc, (
+        SELECT accumulated
+        FROM transactions tx
+        WHERE tx.transaction_id=NEW.transaction_id
+    ) AS cte_tx
+    WHERE transactions.transaction_id=calc.transaction_id;
 END;
 CREATE INDEX idx_transactions_ts ON transactions(account, tx_date);
-CREATE INDEX idx_transactions_hash ON transactions(hash); 

@@ -6,7 +6,7 @@ use hyper::StatusCode;
 use serde::Deserialize;
 use sqlx::SqlitePool;
 
-use accounters::models::transaction::{Transaction, TxConflictResolutionMode};
+use accounters::models::transaction::Transaction;
 
 #[derive(Deserialize)]
 pub struct TransactionContent {
@@ -14,8 +14,6 @@ pub struct TransactionContent {
     timestamp: DateTime<Utc>,
     category: Option<String>,
     amount: i32,
-    #[serde(default)]
-    error_on_conflict: Option<bool>,
 }
 
 pub async fn create(
@@ -23,11 +21,6 @@ pub async fn create(
     Path(account): Path<i32>,
     Json(txcnt): Json<TransactionContent>,
 ) -> (StatusCode, String) {
-    let error_on_conflict = if txcnt.error_on_conflict.is_some_and(|x| x) {
-        TxConflictResolutionMode::Error
-    } else {
-        TxConflictResolutionMode::Nothing
-    };
     match Transaction::new(
         db.as_ref(),
         account,
@@ -35,7 +28,6 @@ pub async fn create(
         &txcnt.timestamp,
         None,
         txcnt.amount,
-        error_on_conflict,
     )
     .await
     {
