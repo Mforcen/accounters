@@ -5,7 +5,7 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use chrono::{DateTime, Utc};
+use chrono::{Date, DateTime, Duration, DurationRound, TimeZone, Utc};
 use hyper::{header::CONTENT_TYPE, StatusCode};
 use serde::Deserialize;
 use sqlx::SqlitePool;
@@ -16,8 +16,18 @@ use accounters::models::{account::Account, categories::Category, transaction::Tr
 
 #[derive(Deserialize)]
 pub struct AccountViewParams {
+    from: Option<String>,
+    to: Option<String>,
     entries: Option<i32>,
     page: Option<i32>,
+}
+
+fn parse_date(s: &str) -> Option<DateTime<Utc>> {
+    let mut iter = s.split('-');
+    let year = iter.next()?.parse::<i32>().ok()?;
+    let month = iter.next()?.parse::<u32>().ok()?;
+    let day = iter.next()?.parse::<u32>().ok()?;
+    Utc.with_ymd_and_hms(year, month, day, 0, 0, 0).single()
 }
 
 pub async fn list(
@@ -25,7 +35,12 @@ pub async fn list(
     State(tmpls): State<Arc<Tera>>,
     uid: UserToken,
     Path(account_id): Path<i32>,
-    Query(AccountViewParams { entries, page }): Query<AccountViewParams>,
+    Query(AccountViewParams {
+        from,
+        to,
+        entries,
+        page,
+    }): Query<AccountViewParams>,
 ) -> impl IntoResponse {
     let mut ctx = Context::new();
 
@@ -47,6 +62,22 @@ pub async fn list(
             String::from("You cannot access this resource"),
         );
     }
+
+    let from = from
+        .and_then(|x| parse_date(&x))
+        .unwrap_or(Utc::now().duration_trunc(Duration::days(1)).unwrap() - Duration::days(30));
+    let to = to
+        .and_then(|x| parse_date(&x))
+        .unwrap_or(Utc::now().duration_trunc(Duration::days(1)).unwrap());
+
+    ctx.insert("date_from", &from);
+    ctx.insert("date_to", &to);
+
+    let tx_agg = Transaction::group_by_date(db.as_ref(), account_id, Some(from), Some(to), false)
+        .await
+        .unwrap();
+
+    ctx.insert("tx_agg", &tx_agg);
 
     let categories: HashMap<i32, String> = Category::list(db.as_ref())
         .await

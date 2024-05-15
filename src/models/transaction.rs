@@ -15,6 +15,12 @@ pub struct Transaction {
     accumulated: i32,
 }
 
+#[derive(FromRow, Serialize, Deserialize, Debug)]
+pub struct TransactionAggregated {
+    tx_date: DateTime<Utc>,
+    accumulated: i32,
+}
+
 impl Transaction {
     pub async fn new(
         pool: &SqlitePool,
@@ -148,6 +154,39 @@ impl Transaction {
         for r in &rows {
             res.push(Transaction::from_row(r)?);
         }
+        Ok(res)
+    }
+
+    pub async fn group_by_date(
+        pool: &SqlitePool,
+        account: i32,
+        after: Option<DateTime<Utc>>,
+        before: Option<DateTime<Utc>>,
+        asc: bool,
+    ) -> Result<Vec<TransactionAggregated>> {
+        let mut query =
+            sqlx::QueryBuilder::new("SELECT accumulated, tx_date FROM transactions WHERE account=");
+        query.push_bind(account);
+
+        if let Some(a) = after {
+            query.push(" AND tx_date >= ");
+            query.push_bind(a);
+        }
+
+        if let Some(b) = before {
+            query.push(" AND tx_date <= ");
+            query.push_bind(b);
+        }
+
+        query.push(" GROUP BY tx_date HAVING max(tx_order)");
+
+        let rows = query.build().fetch_all(pool).await?;
+
+        let mut res = Vec::new();
+        for r in &rows {
+            res.push(TransactionAggregated::from_row(r)?);
+        }
+
         Ok(res)
     }
 

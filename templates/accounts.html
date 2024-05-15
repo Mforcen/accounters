@@ -7,7 +7,20 @@
     <a href="/accounts/id/{{account.account_id}}/transactions/add">+</a>
   </div>
 </div>
-<div>
+<div class="mb-4">
+  <h2>Net amount</h2>
+  <div class="ars-input">
+    <label>
+      Dates
+      <input id="amount-date-range" onselect="onDateChange(event)"/>
+    </label>
+  </div>
+  <div style="height: 400px; width: 800px; position: relative;">
+    <canvas id="amount-trend"></canvas>
+  </div>
+</div>
+<div class="mb-2">
+  <h2>Last transactions</h2>
   <table width="100%">
     <thead>
       <tr>
@@ -58,12 +71,49 @@
     border-spacing: 0.2rem;
   }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+  function onDateChange(e) {
+    console.log(e);
+  }
+
   function onSelect(e) {
     let params = new URLSearchParams();
     params.set("entries", e.target.value);
     window.location.search = params.toString();
   }
+
+  const dateEl = document.getElementById('amount-date-range');
+
+  const picker = new Litepicker({
+    element: dateEl,
+    singleMode: false,
+    maxDate: new Date(),
+    startDate: "{{date_from}}",
+    endDate: "{{date_to}}"
+  });
+
+  dateEl.addEventListener('input', (e) => console.log(e));
+
+  function formatDate(date) {
+    return date.substr(0, date.indexOf('T'));
+  }
+
+  const data = [
+    {% for txag in tx_agg -%}
+    {x: formatDate("{{txag.tx_date}}"), y: {{txag.accumulated/100}} },
+    {% endfor %}
+  ];
+
+  const ctx = document.getElementById('amount-trend');
+
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{label: 'Account', data: data}],
+    },
+  });
 </script>
 {% endblock body %}
 
