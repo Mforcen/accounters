@@ -157,6 +157,20 @@ impl Transaction {
         Ok(res)
     }
 
+    pub async fn list_uncategorized(pool: &SqlitePool, account: i32) -> Result<Vec<Self>> {
+        let mut query = sqlx::QueryBuilder::new("SELECT * FROM TRANSACTIONS WHERE account=");
+        query.push_bind(account);
+
+        query.push(" AND category IS NULL");
+        let rows = query.build().fetch_all(pool).await?;
+
+        let mut ret = Vec::new();
+        for r in &rows {
+            ret.push(Transaction::from_row(r)?);
+        }
+        Ok(ret)
+    }
+
     pub async fn group_by_date(
         pool: &SqlitePool,
         account: i32,

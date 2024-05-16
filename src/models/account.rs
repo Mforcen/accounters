@@ -63,15 +63,9 @@ impl Account {
         Ok(res)
     }
 
-    pub async fn recategorize_transactions(
-        &self,
-        pool: &SqlitePool,
-        from: Option<DateTime<Utc>>,
-        to: Option<DateTime<Utc>>,
-    ) -> Result<()> {
+    pub async fn recategorize_transactions(&self, pool: &SqlitePool) -> Result<()> {
         let rules = Rule::list_by_user(pool, self.user).await?;
-        let mut tx_list =
-            Transaction::list_by_date(pool, self.account_id, from, to, None, true).await?;
+        let mut tx_list = Transaction::list_uncategorized(pool, self.account_id).await?;
         for tx in tx_list.iter_mut() {
             println!("Checking {}", tx.get_description());
             if tx.recategorize(pool, &rules).await? {

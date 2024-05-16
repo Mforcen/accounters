@@ -61,10 +61,7 @@ pub async fn recategorize(
         return (StatusCode::UNAUTHORIZED, String::new());
     }
 
-    match account
-        .recategorize_transactions(db.as_ref(), None, None)
-        .await
-    {
+    match account.recategorize_transactions(db.as_ref()).await {
         Ok(_) => (StatusCode::OK, String::new()),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, format!("{e}")),
     }
