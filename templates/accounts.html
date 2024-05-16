@@ -11,8 +11,9 @@
   <h2>Net amount</h2>
   <div class="ars-input">
     <label>
-      Dates
-      <input id="amount-date-range" onselect="onDateChange(event)"/>
+      <span>Dates</span>
+      <button style="float: right;" class="ars-button" onclick="onDateChange(event)">Update</button>
+      <input id="amount-date-range" />
     </label>
   </div>
   <div style="height: 400px; width: 800px; position: relative;">
@@ -50,7 +51,7 @@
       <div>
         <a href="/accounts/id/{{account.account_id}}?entries={{n_entries}}&page={{prev_page}}">&lt;</a>
       </div>
-      <div>{{curr_page}}</div>
+      <div>{{curr_page + 1}}</div>
       <div>
         <a href="/accounts/id/{{account.account_id}}?entries={{n_entries}}&page={{next_page}}">&gt;</a>
       </div>
@@ -75,11 +76,16 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   function onDateChange(e) {
-    console.log(e);
+    let date_val = document.getElementById('amount-date-range').value.split(' - ');
+
+    let params = new URLSearchParams(window.location.search);
+    params.set('from', date_val[0]);
+    params.set('to', date_val[1]);
+    window.location.search = params.toString();
   }
 
   function onSelect(e) {
-    let params = new URLSearchParams();
+    let params = new URLSearchParams(window.location.search);
     params.set("entries", e.target.value);
     window.location.search = params.toString();
   }
@@ -94,7 +100,6 @@
     endDate: "{{date_to}}"
   });
 
-  dateEl.addEventListener('input', (e) => console.log(e));
 
   function formatDate(date) {
     return date.substr(0, date.indexOf('T'));
