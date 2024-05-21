@@ -28,6 +28,8 @@ async fn main() {
         tmpls: Arc::new(tmpls),
     };
 
+    let exec_id: u32 = rand::random();
+
     let app = Router::new()
         .nest(
             "/",
@@ -69,6 +71,10 @@ async fn main() {
                     Router::new()
                         .route("/styles.css", get(routes::static_routes::styles))
                         .route("/csv.js", get(routes::static_routes::csv)),
+                )
+                .route(
+                    "/execution",
+                    get(move || async move { format!("{exec_id}") }),
                 ),
         )
         .nest(
