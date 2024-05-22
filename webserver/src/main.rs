@@ -105,10 +105,26 @@ async fn main() {
         .with_state(state);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let server = axum::Server::bind(&addr).serve(app.into_make_service());
+
+    let wv_task = tokio::task::spawn_blocking(|| {
+        web_view::builder()
+            .title("Test")
+            .content(web_view::Content::Url("http://localhost:3000"))
+            .user_data(())
+            .invoke_handler(|_wv, _arg| Ok(()))
+            .run()
+            .unwrap();
+    });
+
+    tokio::select! {
+        _ = wv_task => {
+            println!("WebView finished");
+        }
+        e = server => {
+            println!("Axum finished with result {e:?}");
+        }
+    }
 }
 
 #[derive(Clone)]
