@@ -18,8 +18,6 @@ use accounters::models::{account::Account, categories::Category, transaction::Tr
 pub struct AccountViewParams {
     from: Option<String>,
     to: Option<String>,
-    entries: Option<i32>,
-    page: Option<i32>,
 }
 
 fn parse_date(s: &str) -> Option<DateTime<Utc>> {
@@ -30,17 +28,12 @@ fn parse_date(s: &str) -> Option<DateTime<Utc>> {
     Utc.with_ymd_and_hms(year, month, day, 0, 0, 0).single()
 }
 
-pub async fn list(
+pub async fn show(
     State(db): State<Arc<SqlitePool>>,
     State(tmpls): State<Arc<Tera>>,
     uid: UserToken,
     Path(account_id): Path<i32>,
-    Query(AccountViewParams {
-        from,
-        to,
-        entries,
-        page,
-    }): Query<AccountViewParams>,
+    Query(AccountViewParams { from, to }): Query<AccountViewParams>,
 ) -> impl IntoResponse {
     let mut ctx = Context::new();
 
@@ -87,6 +80,60 @@ pub async fn list(
         .collect();
     ctx.insert("categories", &categories);
 
+    let txs = match Transaction::list(db.as_ref(), account.get_id(), 10, 0, false).await {
+        Ok(t) => t,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                [(CONTENT_TYPE, "text/plain")],
+                format!("Error at loading transactions: {e}"),
+            );
+        }
+    };
+
+    ctx.insert("account", &account);
+    ctx.insert("transactions", &txs);
+    (
+        StatusCode::OK,
+        [(CONTENT_TYPE, "text/html;charset=utf-8")],
+        tmpls.render("account_summary.html", &ctx).unwrap(),
+    )
+}
+
+#[derive(Deserialize)]
+pub struct AccountTxListParams {
+    entries: Option<i32>,
+    page: Option<i32>,
+}
+
+pub async fn list_transactions(
+    State(db): State<Arc<SqlitePool>>,
+    State(tmpls): State<Arc<Tera>>,
+    uid: UserToken,
+    Path(account_id): Path<i32>,
+    Query(AccountTxListParams { entries, page }): Query<AccountTxListParams>,
+) -> impl IntoResponse {
+    let mut ctx = Context::new();
+
+    let account = match Account::get_by_id(db.as_ref(), account_id).await {
+        Ok(a) => a,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                [(CONTENT_TYPE, "text/plain")],
+                format!("{e}"),
+            );
+        }
+    };
+
+    if account.get_user() != uid.user_id {
+        return (
+            StatusCode::UNAUTHORIZED,
+            [(CONTENT_TYPE, "text/plain")],
+            String::from("You cannot access this resource"),
+        );
+    }
+
     let n_entries = entries.unwrap_or(10).max(10);
     let page = page.unwrap_or(0).max(0);
 
@@ -119,7 +166,7 @@ pub async fn list(
     (
         StatusCode::OK,
         [(CONTENT_TYPE, "text/html;charset=utf-8")],
-        tmpls.render("accounts.html", &ctx).unwrap(),
+        tmpls.render("account_txs.html", &ctx).unwrap(),
     )
 }
 

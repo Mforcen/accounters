@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Account {{account.account_name}}{% endblock title %}
+{% block body %}
+<div class="flex">
+  <span class="text-lg grow">{{account.account_name}}</span>
+  <div>
+    <a href="/accounts/id/{{account.account_id}}/transactions/add">+</a>
+  </div>
+</div>
+<div class="mb-4">
+  <h2>Net amount</h2>
+  <div class="ars-input">
+    <label>
+      <span>Dates</span>
+      <button style="float: right;" class="ars-button" onclick="onDateChange(event)">Update</button>
+      <input id="amount-date-range" />
+    </label>
+  </div>
+  <div style="height: 400px; width: 800px; position: relative;">
+    <canvas id="amount-trend"></canvas>
+  </div>
+</div>
+<div class="mb-2">
+  <h2>Last transactions</h2>
+  <button class="ars-button" onclick="onRecategorize()">Recategorize</button>
+  <a class="ars-button" href="/accounts/id/{{account.account_id}}/transactions">More</a>
+  <table width="100%">
+    <thead>
+      <tr>
+        <th width="40%">Description</th>
+        <th width="20%">Date</th>
+        <th width="10%">Amount</th>
+        <th width="10%">Acc</th>
+        <th width="15%">Category</th>
+        <th width="5%">Link</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tx in transactions %}
+      <tr>
+        <td>{{tx.description}}</td>
+        <td>{{tx.tx_date}}</td>
+        <td>{{tx.amount/100}}</td>
+        <td>{{tx.accumulated/100}}</td>
+        <td>{% if tx.category %}{{categories[tx.category]}}{% endif %}</td>
+        <td><a href="/transaction/{{ tx.transaction_id }}">Go to</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<style>
+  table {
+    border-spacing: 0.2rem;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  function onRecategorize() {
+    fetch(
+      '/api/v1/accounts/id/{{account.account_id}}/recategorize',
+      {method: 'POST'}
+    ).then(e=>console.log(e));
+  }
+
+  function onDateChange(e) {
+    let date_val = document.getElementById('amount-date-range').value.split(' - ');
+
+    let params = new URLSearchParams(window.location.search);
+    params.set('from', date_val[0]);
+    params.set('to', date_val[1]);
+    window.location.search = params.toString();
+  }
+
+  function onSelect(e) {
+    let params = new URLSearchParams(window.location.search);
+    params.set("entries", e.target.value);
+    window.location.search = params.toString();
+  }
+
+  const dateEl = document.getElementById('amount-date-range');
+
+  const picker = new Litepicker({
+    element: dateEl,
+    singleMode: false,
+    maxDate: new Date(),
+    startDate: "{{date_from}}",
+    endDate: "{{date_to}}"
+  });
+
+
+  function formatDate(date) {
+    return date.substr(0, date.indexOf('T'));
+  }
+
+  const data = [
+    {% for txag in tx_agg -%}
+    {x: formatDate("{{txag.tx_date}}"), y: {{txag.accumulated/100}} },
+    {% endfor %}
+  ];
+
+  const ctx = document.getElementById('amount-trend');
+
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{label: 'Account', data: data}],
+    },
+  });
+</script>
+{% endblock body %}
+

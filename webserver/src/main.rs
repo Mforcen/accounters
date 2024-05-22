@@ -35,7 +35,7 @@ async fn main() {
             "/",
             Router::new()
                 .route("/", get(routes::ui::index))
-                .route("/accounts/id/:id", get(routes::ui::account::list))
+                .route("/accounts/id/:id", get(routes::ui::account::show))
                 .route(
                     "/accounts/id/:id/transactions/add",
                     get(routes::ui::account::add_transactions_view),
@@ -43,6 +43,10 @@ async fn main() {
                 .route(
                     "/accounts/id/:id/transactions/add",
                     post(routes::ui::account::add_transactions_action),
+                )
+                .route(
+                    "/accounts/id/:id/transactions",
+                    get(routes::ui::account::list_transactions),
                 )
                 .route("/transaction/:id", get(routes::ui::transaction::view))
                 .route("/transaction/:id", post(routes::ui::transaction::update))
