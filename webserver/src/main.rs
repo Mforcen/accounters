@@ -38,37 +38,30 @@ async fn main() {
                 .route("/accounts/id/:id", get(routes::ui::account::show))
                 .route(
                     "/accounts/id/:id/transactions/add",
-                    get(routes::ui::account::add_transactions_view),
-                )
-                .route(
-                    "/accounts/id/:id/transactions/add",
-                    post(routes::ui::account::add_transactions_action),
+                    get(routes::ui::account::add_transactions_view)
+                        .post(routes::ui::account::add_transactions_action),
                 )
                 .route(
                     "/accounts/id/:id/transactions",
                     get(routes::ui::account::list_transactions),
                 )
-                .route("/transaction/:id", get(routes::ui::transaction::view))
-                .route("/transaction/:id", post(routes::ui::transaction::update))
+                .route(
+                    "/transaction/:id",
+                    get(routes::ui::transaction::view).post(routes::ui::transaction::update),
+                )
                 .route(
                     "/classifiers",
                     get(routes::ui::classifier::view_classifiers),
                 )
                 .route(
                     "/classifiers/new_rule",
-                    get(routes::ui::classifier::rules_new_view),
-                )
-                .route(
-                    "/classifiers/new_rule",
-                    post(routes::ui::classifier::rules_new_action),
+                    get(routes::ui::classifier::rules_new_view)
+                        .post(routes::ui::classifier::rules_new_action),
                 )
                 .route(
                     "/classifiers/new_category",
-                    get(routes::ui::classifier::category_new_view),
-                )
-                .route(
-                    "/classifiers/new_category",
-                    post(routes::ui::classifier::category_new_action),
+                    get(routes::ui::classifier::category_new_view)
+                        .post(routes::ui::classifier::category_new_action),
                 )
                 .nest(
                     "/static",
@@ -115,6 +108,7 @@ async fn main() {
         web_view::builder()
             .title("Test")
             .content(web_view::Content::Url("http://localhost:3000"))
+            .size(1024, 600)
             .user_data(())
             .invoke_handler(|_wv, _arg| Ok(()))
             .run()

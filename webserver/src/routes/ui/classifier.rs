@@ -5,7 +5,10 @@ use axum::{
     extract::{Form, State},
     response::IntoResponse,
 };
-use hyper::{header::CONTENT_TYPE, StatusCode};
+use hyper::{
+    header::{CONTENT_TYPE, LOCATION},
+    StatusCode,
+};
 use serde::Deserialize;
 use sqlx::SqlitePool;
 use tera::{Context, Tera};
@@ -75,41 +78,15 @@ pub struct NewRuleParams {
 
 pub async fn rules_new_action(
     State(db): State<Arc<SqlitePool>>,
-    State(tmpls): State<Arc<Tera>>,
     uid: UserToken,
     Form(params): Form<NewRuleParams>,
 ) -> impl IntoResponse {
     match Rule::new(db.as_ref(), uid.user_id, params.regex, params.category).await {
         Ok(_) => (
-            StatusCode::OK,
-            [(CONTENT_TYPE, "text/html;charset=utf-8")],
-            tmpls
-                .render("rules_new_success.html", &Context::new())
-                .unwrap(),
+            StatusCode::MOVED_PERMANENTLY,
+            [(LOCATION, "/classifiers")],
+            String::new(),
         ),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            [(CONTENT_TYPE, "text/plain;charset=utf-8")],
-            format!("{e}"),
-        ),
-    }
-}
-
-pub async fn category_list(
-    State(db): State<Arc<SqlitePool>>,
-    State(tmpl): State<Arc<Tera>>,
-    uid: UserToken,
-) -> impl IntoResponse {
-    match Category::list(db.as_ref()).await {
-        Ok(categories) => {
-            let mut ctx = Context::new();
-            ctx.insert("categories", &categories);
-            (
-                StatusCode::OK,
-                [(CONTENT_TYPE, "text/html;charset=utf-8")],
-                tmpl.render("categories_list.html", &ctx).unwrap(),
-            )
-        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             [(CONTENT_TYPE, "text/plain;charset=utf-8")],
@@ -134,17 +111,14 @@ pub struct CategoryNewRuleParams {
 
 pub async fn category_new_action(
     State(db): State<Arc<SqlitePool>>,
-    State(tmpls): State<Arc<Tera>>,
     uid: UserToken,
     Form(params): Form<CategoryNewRuleParams>,
 ) -> impl IntoResponse {
     match Category::new(db.as_ref(), &params.name, &params.description).await {
         Ok(_) => (
-            StatusCode::OK,
-            [(CONTENT_TYPE, "text/html;charset=utf-8")],
-            tmpls
-                .render("rules_new_success.html", &Context::new())
-                .unwrap(),
+            StatusCode::MOVED_PERMANENTLY,
+            [(LOCATION, "/classifiers")],
+            String::new(),
         ),
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,

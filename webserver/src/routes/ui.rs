@@ -1,7 +1,7 @@
 use std::{borrow::BorrowMut, collections::HashMap, sync::Arc};
 
 use axum::{extract::State, response::IntoResponse};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use hyper::{header::CONTENT_TYPE, StatusCode};
 use serde::Serialize;
 use sqlx::SqlitePool;
@@ -11,9 +11,7 @@ use crate::users::UserToken;
 use accounters::models::{account::Account, categories::Category, transaction::Transaction};
 
 pub mod account;
-pub mod categories;
 pub mod classifier;
-pub mod rules;
 pub mod transaction;
 
 #[derive(Serialize)]

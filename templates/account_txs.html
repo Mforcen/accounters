@@ -7,21 +7,8 @@
     <a href="/accounts/id/{{account.account_id}}/transactions/add">+</a>
   </div>
 </div>
-<div class="mb-4">
-  <h2>Net amount</h2>
-  <div class="ars-input">
-    <label>
-      <span>Dates</span>
-      <button style="float: right;" class="ars-button" onclick="onDateChange(event)">Update</button>
-      <input id="amount-date-range" />
-    </label>
-  </div>
-  <div style="height: 400px; width: 800px; position: relative;">
-    <canvas id="amount-trend"></canvas>
-  </div>
-</div>
 <div class="mb-2">
-  <h2>Last transactions</h2>
+  <h2>Transactions</h2>
   <button class="ars-button" onclick="onRecategorize()">Recategorize</button>
   <table width="100%">
     <thead>
@@ -73,8 +60,6 @@
     border-spacing: 0.2rem;
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   function onRecategorize() {
     fetch(
@@ -83,50 +68,15 @@
     ).then(e=>console.log(e));
   }
 
-  function onDateChange(e) {
-    let date_val = document.getElementById('amount-date-range').value.split(' - ');
-
-    let params = new URLSearchParams(window.location.search);
-    params.set('from', date_val[0]);
-    params.set('to', date_val[1]);
-    window.location.search = params.toString();
-  }
-
   function onSelect(e) {
     let params = new URLSearchParams(window.location.search);
     params.set("entries", e.target.value);
     window.location.search = params.toString();
   }
 
-  const dateEl = document.getElementById('amount-date-range');
-
-  const picker = new Litepicker({
-    element: dateEl,
-    singleMode: false,
-    maxDate: new Date(),
-    startDate: "{{date_from}}",
-    endDate: "{{date_to}}"
-  });
-
-
   function formatDate(date) {
     return date.substr(0, date.indexOf('T'));
   }
-
-  const data = [
-    {% for txag in tx_agg -%}
-    {x: formatDate("{{txag.tx_date}}"), y: {{txag.accumulated/100}} },
-    {% endfor %}
-  ];
-
-  const ctx = document.getElementById('amount-trend');
-
-  const chart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [{label: 'Account', data: data}],
-    },
-  });
 </script>
 {% endblock body %}
 

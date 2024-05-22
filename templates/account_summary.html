@@ -22,7 +22,6 @@
 </div>
 <div class="mb-2">
   <h2>Last transactions</h2>
-  <button class="ars-button" onclick="onRecategorize()">Recategorize</button>
   <a class="ars-button" href="/accounts/id/{{account.account_id}}/transactions">More</a>
   <table width="100%">
     <thead>
@@ -57,13 +56,6 @@
 <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  function onRecategorize() {
-    fetch(
-      '/api/v1/accounts/id/{{account.account_id}}/recategorize',
-      {method: 'POST'}
-    ).then(e=>console.log(e));
-  }
-
   function onDateChange(e) {
     let date_val = document.getElementById('amount-date-range').value.split(' - ');
 

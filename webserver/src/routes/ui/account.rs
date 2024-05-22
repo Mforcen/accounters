@@ -134,6 +134,14 @@ pub async fn list_transactions(
         );
     }
 
+    let categories: HashMap<i32, String> = Category::list(db.as_ref())
+        .await
+        .unwrap()
+        .iter()
+        .map(|x| (x.category_id, x.name.clone()))
+        .collect();
+    ctx.insert("categories", &categories);
+
     let n_entries = entries.unwrap_or(10).max(10);
     let page = page.unwrap_or(0).max(0);
 
