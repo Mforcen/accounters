@@ -8,7 +8,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "futures",
- "md-5",
+ "log",
  "regex",
  "serde",
  "sqlx",

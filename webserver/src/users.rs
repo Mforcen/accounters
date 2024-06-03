@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use accounters::models::users::User;
 use axum::{
     async_trait,
@@ -12,7 +10,7 @@ use axum::{
 };
 use hyper::StatusCode;
 
-use crate::AppState;
+use crate::server::AppState;
 
 pub struct AuthRedirect;
 
