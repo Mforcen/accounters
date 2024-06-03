@@ -53,7 +53,25 @@ impl Transaction {
             .and_then(|x| Transaction::from_row(&x))
     }
 
-    pub async fn list(
+    pub async fn list(pool: &SqlitePool, limit: i32, offset: i32, asc: bool) -> Result<Vec<Self>> {
+        let rows = sqlx::query(if asc {
+            "SELECT * FROM transactions ORDER BY tx_date ASC LIMIT ? OFFSET ?"
+        } else {
+            "SELECT * FROM transactions ORDER BY tx_date DESC LIMIT ? OFFSET ?"
+        })
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+        let mut res = Vec::new();
+        for r in &rows {
+            res.push(Transaction::from_row(r)?);
+        }
+        Ok(res)
+    }
+
+    pub async fn list_by_account(
         pool: &SqlitePool,
         account: i32,
         limit: i32,
@@ -78,41 +96,19 @@ impl Transaction {
         Ok(res)
     }
 
-    pub async fn list_by_user(
-        pool: &SqlitePool,
-        user: i32,
-        limit: i32,
-        offset: i32,
-        asc: bool,
-    ) -> Result<Vec<Self>> {
-        let rows = sqlx::query(
-			if asc {
-				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY tx_date ASC LIMIT ? OFFSET ?"
-			} else {
-				"SELECT t.* FROM transactions t JOIN accounts a ON a.account_id=t.account WHERE a.user=? ORDER BY tx_date DESC LIMIT ? OFFSET ?"
-			}
-		).bind(user)
-         .bind(limit)
-         .bind(offset)
-         .fetch_all(pool)
-         .await?;
-
-        let mut res = Vec::new();
-        for r in &rows {
-            res.push(Transaction::from_row(r)?);
-        }
-        Ok(res)
-    }
-
     pub fn query_by_date<'a>(
-        account: i32,
+        account: Option<i32>,
         after: Option<DateTime<Utc>>,
         before: Option<DateTime<Utc>>,
         limit: Option<i32>,
         asc: bool,
     ) -> sqlx::QueryBuilder<'a, Sqlite> {
-        let mut query = sqlx::QueryBuilder::new("SELECT * FROM TRANSACTIONS WHERE account=");
-        query.push_bind(account);
+        let mut query = sqlx::QueryBuilder::new("SELECT * FROM transactions WHERE TRUE ");
+
+        if let Some(acc) = account {
+            query.push(" AND account=");
+            query.push_bind(acc);
+        }
 
         if let Some(after) = after {
             query.push(" AND tx_date >= ");
@@ -140,7 +136,7 @@ impl Transaction {
 
     pub async fn list_by_date(
         pool: &SqlitePool,
-        account: i32,
+        account: Option<i32>,
         after: Option<DateTime<Utc>>,
         before: Option<DateTime<Utc>>,
         limit: Option<i32>,
@@ -284,7 +280,7 @@ impl Transaction {
 #[cfg(test)]
 mod tests {
     use super::Transaction;
-    use crate::models::{account::Account, users::User};
+    use crate::models::account::Account;
     use sqlx::SqlitePool;
 
     async fn get_db() -> SqlitePool {
@@ -296,15 +292,10 @@ mod tests {
         std::fs::remove_file("tx_test.db").unwrap();
     }
 
-    async fn new_user(pool: &SqlitePool) -> User {
-        User::create_user(pool, "testuser", "pass").await.unwrap()
-    }
-
     #[tokio::test]
     async fn create_test() {
         let pool = get_db().await;
-        let user = new_user(&pool).await;
-        let acc = Account::new(&pool, user.get_id(), "tx_test").await.unwrap();
+        let acc = Account::new(&pool, "tx_test").await.unwrap();
         let tx = Transaction::new(
             &pool,
             acc.get_id(),

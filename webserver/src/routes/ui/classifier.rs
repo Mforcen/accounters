@@ -13,14 +13,11 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 use tera::{Context, Tera};
 
-use crate::users::UserToken;
-
 pub async fn view_classifiers(
     State(db): State<Arc<SqlitePool>>,
     State(tmpls): State<Arc<Tera>>,
-    uid: UserToken,
 ) -> impl IntoResponse {
-    let rules = match Rule::list_by_user(db.as_ref(), uid.user_id).await {
+    let rules = match Rule::list(db.as_ref()).await {
         Ok(r) => r,
         Err(e) => {
             return (
@@ -57,7 +54,6 @@ pub async fn view_classifiers(
 pub async fn rules_new_view(
     State(db): State<Arc<SqlitePool>>,
     State(tmpls): State<Arc<Tera>>,
-    uid: UserToken,
 ) -> impl IntoResponse {
     let categories = Category::list(db.as_ref()).await.unwrap();
     let mut ctx = Context::new();
@@ -78,10 +74,9 @@ pub struct NewRuleParams {
 
 pub async fn rules_new_action(
     State(db): State<Arc<SqlitePool>>,
-    uid: UserToken,
     Form(params): Form<NewRuleParams>,
 ) -> impl IntoResponse {
-    match Rule::new(db.as_ref(), uid.user_id, params.regex, params.category).await {
+    match Rule::new(db.as_ref(), params.regex, params.category).await {
         Ok(_) => (
             StatusCode::MOVED_PERMANENTLY,
             [(LOCATION, "/classifiers")],
@@ -95,7 +90,7 @@ pub async fn rules_new_action(
     }
 }
 
-pub async fn category_new_view(State(tmpl): State<Arc<Tera>>, uid: UserToken) -> impl IntoResponse {
+pub async fn category_new_view(State(tmpl): State<Arc<Tera>>) -> impl IntoResponse {
     (
         StatusCode::OK,
         [(CONTENT_TYPE, "text/html;charset=utf-8")],
@@ -111,7 +106,6 @@ pub struct CategoryNewRuleParams {
 
 pub async fn category_new_action(
     State(db): State<Arc<SqlitePool>>,
-    uid: UserToken,
     Form(params): Form<CategoryNewRuleParams>,
 ) -> impl IntoResponse {
     match Category::new(db.as_ref(), &params.name, &params.description).await {

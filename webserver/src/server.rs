@@ -1,7 +1,6 @@
 use std::net::{AddrParseError, SocketAddr};
 use std::sync::Arc;
 
-use axum::headers::ContentType;
 use hyper::{header, StatusCode};
 use sqlx::SqlitePool;
 

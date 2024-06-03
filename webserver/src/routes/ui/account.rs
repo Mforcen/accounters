@@ -11,7 +11,6 @@ use serde::Deserialize;
 use sqlx::SqlitePool;
 use tera::{Context, Tera};
 
-use crate::users::UserToken;
 use accounters::models::{account::Account, categories::Category, transaction::Transaction};
 
 #[derive(Deserialize)]
@@ -31,7 +30,6 @@ fn parse_date(s: &str) -> Option<DateTime<Utc>> {
 pub async fn show(
     State(db): State<Arc<SqlitePool>>,
     State(tmpls): State<Arc<Tera>>,
-    uid: UserToken,
     Path(account_id): Path<i32>,
     Query(AccountViewParams { from, to }): Query<AccountViewParams>,
 ) -> impl IntoResponse {
@@ -47,14 +45,6 @@ pub async fn show(
             );
         }
     };
-
-    if account.get_user() != uid.user_id {
-        return (
-            StatusCode::UNAUTHORIZED,
-            [(CONTENT_TYPE, "text/plain")],
-            String::from("You cannot access this resource"),
-        );
-    }
 
     let from = from
         .and_then(|x| parse_date(&x))
@@ -80,7 +70,8 @@ pub async fn show(
         .collect();
     ctx.insert("categories", &categories);
 
-    let txs = match Transaction::list(db.as_ref(), account.get_id(), 10, 0, false).await {
+    let txs = match Transaction::list_by_account(db.as_ref(), account.get_id(), 10, 0, false).await
+    {
         Ok(t) => t,
         Err(e) => {
             return (
@@ -109,7 +100,6 @@ pub struct AccountTxListParams {
 pub async fn list_transactions(
     State(db): State<Arc<SqlitePool>>,
     State(tmpls): State<Arc<Tera>>,
-    uid: UserToken,
     Path(account_id): Path<i32>,
     Query(AccountTxListParams { entries, page }): Query<AccountTxListParams>,
 ) -> impl IntoResponse {
@@ -126,14 +116,6 @@ pub async fn list_transactions(
         }
     };
 
-    if account.get_user() != uid.user_id {
-        return (
-            StatusCode::UNAUTHORIZED,
-            [(CONTENT_TYPE, "text/plain")],
-            String::from("You cannot access this resource"),
-        );
-    }
-
     let categories: HashMap<i32, String> = Category::list(db.as_ref())
         .await
         .unwrap()
@@ -145,7 +127,7 @@ pub async fn list_transactions(
     let n_entries = entries.unwrap_or(10).max(10);
     let page = page.unwrap_or(0).max(0);
 
-    let txs = match Transaction::list(
+    let txs = match Transaction::list_by_account(
         db.as_ref(),
         account.get_id(),
         n_entries,
@@ -181,7 +163,6 @@ pub async fn list_transactions(
 pub async fn add_transactions_view(
     State(db): State<Arc<SqlitePool>>,
     State(tmpls): State<Arc<Tera>>,
-    uid: UserToken,
     Path(account_id): Path<i32>,
 ) -> impl IntoResponse {
     let mut ctxt = Context::new();
@@ -197,14 +178,6 @@ pub async fn add_transactions_view(
             );
         }
     };
-
-    if account.get_user() != uid.user_id {
-        return (
-            StatusCode::UNAUTHORIZED,
-            [(CONTENT_TYPE, "text/plain")],
-            String::from("You cannot access this resource"),
-        );
-    }
 
     ctxt.insert("account", &account);
 
@@ -224,11 +197,9 @@ pub struct CreateTransactionRequest {
 
 pub async fn add_transactions_action(
     State(db): State<Arc<SqlitePool>>,
-    uid: UserToken,
     Path(account_id): Path<i32>,
     Json(body): Json<Vec<CreateTransactionRequest>>,
 ) -> impl IntoResponse {
-    // TODO missing user id check
     for tx in body.iter() {
         if let Err(e) = Transaction::new(
             db.as_ref(),

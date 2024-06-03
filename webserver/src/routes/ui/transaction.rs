@@ -12,12 +12,9 @@ use serde::{Deserialize, Deserializer};
 use sqlx::SqlitePool;
 use tera::Tera;
 
-use crate::users::UserToken;
-
 pub async fn view(
     db: State<Arc<SqlitePool>>,
     tmpl: State<Arc<Tera>>,
-    user: UserToken,
     Path(id): Path<i32>,
 ) -> impl IntoResponse {
     let tx = Transaction::get_by_id(db.as_ref(), id).await.unwrap();
@@ -58,8 +55,6 @@ pub struct TxUpdateRequest {
 
 pub async fn update(
     db: State<Arc<SqlitePool>>,
-    tmpl: State<Arc<Tera>>,
-    user: UserToken,
     Path(id): Path<i32>,
     Form(req): Form<TxUpdateRequest>,
 ) -> impl IntoResponse {

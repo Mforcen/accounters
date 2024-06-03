@@ -47,7 +47,7 @@ pub async fn list(
     Path(account): Path<i32>,
     Query(pagination): Query<PaginationOptions>,
 ) -> (StatusCode, String) {
-    match Transaction::list(
+    match Transaction::list_by_account(
         db.as_ref(),
         account,
         pagination.limit.unwrap_or(100),

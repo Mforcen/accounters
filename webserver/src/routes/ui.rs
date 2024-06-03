@@ -7,7 +7,6 @@ use serde::Serialize;
 use sqlx::SqlitePool;
 use tera::{Context, Tera};
 
-use crate::users::UserToken;
 use accounters::models::{account::Account, categories::Category, transaction::Transaction};
 
 pub mod account;
@@ -23,7 +22,7 @@ struct AccountRender {
 
 impl AccountRender {
     async fn from_account(pool: &SqlitePool, acc: Account) -> Self {
-        let last_acc = Transaction::list(pool, acc.get_id(), 1, 0, false)
+        let last_acc = Transaction::list_by_account(pool, acc.get_id(), 1, 0, false)
             .await
             .map_or(0.0, |x| {
                 x.get(0)
@@ -54,11 +53,10 @@ fn hm_sort(hm: HashMap<i32, i64>, collapse: usize) -> Vec<(i32, i64)> {
 pub async fn index(
     State(db): State<Arc<SqlitePool>>,
     State(tmpls): State<Arc<Tera>>,
-    uid: UserToken,
 ) -> impl IntoResponse {
     let mut ctx = Context::new();
 
-    let accounts = Account::list(db.as_ref(), uid.user_id).await.unwrap();
+    let accounts = Account::list(db.as_ref()).await.unwrap();
     let mut acc_render = Vec::new();
 
     for acc in accounts.into_iter() {
@@ -69,7 +67,7 @@ pub async fn index(
 
     let last_month = Transaction::list_by_date(
         db.as_ref(),
-        uid.user_id,
+        None,
         Some(Utc::now() - chrono::Duration::days(30)),
         Some(Utc::now()),
         None,
@@ -119,9 +117,7 @@ pub async fn index(
 
     ctx.insert("colors", &colors);
 
-    let transactions = Transaction::list_by_user(db.as_ref(), uid.user_id, 10, 0, false)
-        .await
-        .unwrap();
+    let transactions = Transaction::list(db.as_ref(), 10, 0, false).await.unwrap();
     ctx.insert("transactions", &transactions);
 
     match tmpls.render("index.html", &ctx) {

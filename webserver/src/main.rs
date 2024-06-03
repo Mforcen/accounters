@@ -1,7 +1,6 @@
 mod routes;
 mod server;
 mod static_values;
-mod users;
 
 const DB_URL: &str = "sqlite://sqlite.db";
 
@@ -9,7 +8,7 @@ const DB_URL: &str = "sqlite://sqlite.db";
 async fn main() {
     let server = server::start_server("127.0.0.1:3000", DB_URL);
 
-    /*let wv_task = tokio::task::spawn_blocking(|| {
+    let wv_task = tokio::task::spawn_blocking(|| {
         web_view::builder()
             .title("Test")
             .content(web_view::Content::Url("http://localhost:3000"))
@@ -27,6 +26,5 @@ async fn main() {
         e = server => {
             println!("Axum finished with result {e:?}");
         }
-    }*/
-    server.await.unwrap()
+    }
 }

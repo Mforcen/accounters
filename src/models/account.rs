@@ -1,4 +1,3 @@
-use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, Result, SqlitePool};
 
@@ -7,17 +6,12 @@ use super::{rules::Rule, transaction::Transaction};
 #[derive(FromRow, Serialize, Deserialize, Debug)]
 pub struct Account {
     account_id: i32,
-    user: i32,
     account_name: String,
 }
 
 impl Account {
     pub fn get_id(&self) -> i32 {
         self.account_id
-    }
-
-    pub fn get_user(&self) -> i32 {
-        self.user
     }
 
     pub fn get_account_name(&self) -> &str {
@@ -42,18 +36,16 @@ impl Account {
             .and_then(|r| Account::from_row(&r))
     }
 
-    pub async fn new(pool: &SqlitePool, user: i32, name: &str) -> Result<Self> {
-        let row = sqlx::query("INSERT INTO accounts(user, account_name) VALUES (?,?) RETURNING *")
-            .bind(user)
+    pub async fn new(pool: &SqlitePool, name: &str) -> Result<Self> {
+        let row = sqlx::query("INSERT INTO accounts(account_name) VALUES (?) RETURNING *")
             .bind(name)
             .fetch_one(pool)
             .await?;
         Self::from_row(&row)
     }
 
-    pub async fn list(pool: &SqlitePool, user: i32) -> Result<Vec<Self>> {
-        let rows = sqlx::query("SELECT * FROM accounts WHERE user=?")
-            .bind(user)
+    pub async fn list(pool: &SqlitePool) -> Result<Vec<Self>> {
+        let rows = sqlx::query("SELECT * FROM accounts")
             .fetch_all(pool)
             .await?;
         let mut res = Vec::new();
@@ -64,7 +56,7 @@ impl Account {
     }
 
     pub async fn recategorize_transactions(&self, pool: &SqlitePool) -> Result<()> {
-        let rules = Rule::list_by_user(pool, self.user).await?;
+        let rules = Rule::list(pool).await?;
         let mut tx_list = Transaction::list_uncategorized(pool, self.account_id).await?;
         for tx in tx_list.iter_mut() {
             println!("Checking {}", tx.get_description());
@@ -84,7 +76,6 @@ impl Account {
 #[cfg(test)]
 mod tests {
     use super::Account;
-    use crate::models::users::User;
     use sqlx::SqlitePool;
 
     async fn get_db() -> SqlitePool {
@@ -96,19 +87,10 @@ mod tests {
         std::fs::remove_file("account_test.db").unwrap();
     }
 
-    async fn new_user(pool: &SqlitePool) -> User {
-        User::create_user(pool, "account_test", "pass")
-            .await
-            .unwrap()
-    }
-
     #[tokio::test]
     async fn create_test() {
         let pool = get_db().await;
-        let user = new_user(&pool).await;
-        Account::new(&pool, user.get_id(), "account_test")
-            .await
-            .unwrap();
+        Account::new(&pool, "account_test").await.unwrap();
         remove_db(pool).await;
     }
 }
